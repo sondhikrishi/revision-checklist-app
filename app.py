@@ -35,7 +35,13 @@ def get_db_connection():
 
 @app.route('/')
 def index():
-    files=os.listdir(app.config['UPLOAD_FOLDER'])
+    upload_folder = app.config['UPLOAD_FOLDER']
+
+import os
+if not os.path.exists(upload_folder):
+    os.makedirs(upload_folder)
+
+files = os.listdir(upload_folder)
     conn=get_db_connection()
     tasks = conn.execute('SELECT * FROM tasks ORDER BY day').fetchall()
     conn.close
