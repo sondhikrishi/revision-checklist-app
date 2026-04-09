@@ -1,7 +1,7 @@
 from flask import Flask,render_template,request,redirect
 import sqlite3
 import os
-from datetime import datetime
+from datetime import date
 streak=0
 last_completed_date=None
 
@@ -33,6 +33,24 @@ def get_db_connection():
 
 #------ROUTES--------
 
+@app.route('/')
+def index():
+    upload_folder = app.config['UPLOAD_FOLDER']
+
+    import os
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    files = os.listdir(upload_folder)
+
+    conn = get_db_connection()
+    tasks = conn.execute('SELECT * FROM tasks ORDER BY day').fetchall()
+    conn.close()
+
+    streak = sum(1 for task in tasks if task['done'] == 1)
+
+    return render_template('index.html', tasks=tasks, files=files, streak=streak)
+
 upload_folder = app.config['UPLOAD_FOLDER']
 
 import os
@@ -43,6 +61,7 @@ files = os.listdir(upload_folder)
 
 @app.route('/add',methods=['POST'])
 def add():
+    task=request.form.get('task')
     day=request.form.get('day')
     conn=get_db_connection()
     conn.execute('INSERT INTO tasks(task,done,day)VALUES(?,?,?)',(task,0,day))
@@ -78,7 +97,7 @@ def toggle(id):
 
     return redirect('/')
 
-@app.route('/delete/<int:index>')
+@app.route('/delete/<int:id>')
 def delete(id):
     conn=get_db_connection()
     conn.execute('DELETE FROM tasks WHERE id=?',(id,))

@@ -125,18 +125,23 @@ li {
 <form action="/upload" method="POST" enctype="multipart/form-data">
     <input type="file" name="file">
     <button type="submit">Upload</button> -->
-<h3>📂 Uploaded PDFs</h3>
+<h3>📂 Upload PDFs</h3>
+<h3>Upload PDF</h3>
+
+<form action="/upload" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" required>
+    <button type="submit">Upload</button>
+</form>
+<h3>📄 Uploaded PDFs</h3>
 
 <ul>
     {% for file in files %}
-    <li>
-        <a href="{{ url_for('static', filename='uploads/' + file) }}" target="_blank">
-            {{ file }}
-        </a>
-    </li>
+        <li>
+            📎 <a href="{{ url_for('static', filename='uploads/' + file) }}" target="_blank">
+                {{ file }}
+            </a>
+        </li>
     {% endfor %}
 </ul>
-</form>
-
 </body>
 </html>
