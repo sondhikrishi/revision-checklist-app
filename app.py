@@ -33,19 +33,13 @@ def get_db_connection():
 
 #------ROUTES--------
 
-@app.route('/')
-def index():
-    upload_folder = app.config['UPLOAD_FOLDER']
+upload_folder = app.config['UPLOAD_FOLDER']
 
 import os
 if not os.path.exists(upload_folder):
     os.makedirs(upload_folder)
 
 files = os.listdir(upload_folder)
-    conn=get_db_connection()
-    tasks = conn.execute('SELECT * FROM tasks ORDER BY day').fetchall()
-    conn.close
-    return render_template('index.html',tasks=tasks,files=files,streak=streak)
 
 @app.route('/add',methods=['POST'])
 def add():
@@ -57,7 +51,7 @@ def add():
     #tasks.append({'task':task,'done':False})
     return redirect('/')
 
-@app.route('/toggle/<int:id>',methods=['POST'])
+
 @app.route('/toggle/<int:id>', methods=['POST'])
 def toggle(id):
     global streak, last_completed_date
