@@ -17,7 +17,13 @@ day TEXT
 conn.close
 app=Flask(__name__)
 UPLOAD_FOLDER='static/uploads'
+
 app.config['UPLOAD_FOLDER']=UPLOAD_FOLDER
+import os
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+    
 tasks=[]
 #----------DATABASE SETUP---------
 def get_db_connection():
