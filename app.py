@@ -1,24 +1,14 @@
 from flask import Flask,render_template,request,redirect
+from flask import session
 import sqlite3
 import os
 from datetime import date
-CURRENT_USER = "krishi"
 streak=0
 last_completed_date=None
 
-#----create table---------
-conn=sqlite3.connect('tasks.db')
-conn.execute('''
-CREATE TABLE IF NOT EXISTS tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task TEXT,
-    done INTEGER,
-    day TEXT,
-    user_id TEXT
-)
-''')
-conn.close
 app=Flask(__name__)
+app.secret_key = "secret123"
+
 UPLOAD_FOLDER='static/uploads'
 
 app.config['UPLOAD_FOLDER']=UPLOAD_FOLDER
@@ -28,16 +18,96 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
     
 tasks=[]
+
 #----------DATABASE SETUP---------
 def get_db_connection():
     conn=sqlite3.connect('tasks.db')
     conn.row_factory=sqlite3.Row
     return conn
 
+
+#----create table---------
+# Create tasks table
+conn = get_db_connection()
+conn.execute('''
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task TEXT,
+    done INTEGER,
+    day TEXT,
+    user_id TEXT
+)
+''')
+conn.close()
+
+# Create users table
+conn = get_db_connection()
+conn.execute('''
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    password TEXT
+)
+''')
+conn.close()
+
+
 #------ROUTES--------
 
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        conn = get_db_connection()
+        try:
+            conn.execute(
+                'INSERT INTO users (username, password) VALUES (?, ?)',
+                (username, password)
+            )
+            conn.commit()
+        except:
+            return "User already exists"
+
+        conn.close()
+        return redirect('/login')
+
+    return render_template('signup.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        conn = get_db_connection()
+        user = conn.execute(
+            'SELECT * FROM users WHERE username = ? AND password = ?',
+            (username, password)
+        ).fetchone()
+        conn.close()
+
+        if user:
+            session['user'] = username
+            return redirect('/')
+        else:
+            return "Invalid credentials"
+
+    return render_template('login.html')
+
+
+@app.route('/')
 @app.route('/')
 def index():
+
+    # 🔒 Protect route
+    if 'user' not in session:
+        return redirect('/login')
+
+    user = session['user']   # ✅ safe now
+
     upload_folder = app.config['UPLOAD_FOLDER']
 
     import os
@@ -47,7 +117,10 @@ def index():
     files = os.listdir(upload_folder)
 
     conn = get_db_connection()
-    tasks = conn.execute('SELECT * FROM tasks WHERE user_id = ? ORDER BY day',(CURRENT_USER,)).fetchall()
+    tasks = conn.execute(
+        'SELECT * FROM tasks WHERE user_id = ? ORDER BY day',
+        (user,)
+    ).fetchall()
     conn.close()
 
     streak = sum(1 for task in tasks if task['done'] == 1)
@@ -67,7 +140,10 @@ def add():
     task=request.form.get('task')
     day=request.form.get('day')
     conn=get_db_connection()
-    conn.execute('INSERT INTO tasks (task, done, day, user_id) VALUES (?, ?, ?, ?)',(task, 0, day, CURRENT_USER))
+    conn.execute(
+    'INSERT INTO tasks (task, done, day, user_id) VALUES (?, ?, ?, ?)',
+    (task, 0, day, session['user'])
+)
     conn.commit()
     conn.close()
     #tasks.append({'task':task,'done':False})
@@ -82,7 +158,7 @@ def toggle(id):
     task = conn.execute('SELECT done FROM tasks WHERE id = ?', (id,)).fetchone()
     new_status = 0 if task['done'] else 1
 
-    conn.execute('UPDATE tasks SET done = 1 WHERE id = ? AND user_id = ?',(id, CURRENT_USER))
+    conn.execute('UPDATE tasks SET done = 1 WHERE id = ? AND user_id = ?',(id, session['user']))
     conn.commit()
     conn.close()
 
@@ -103,10 +179,15 @@ def toggle(id):
 @app.route('/delete/<int:id>')
 def delete(id):
     conn=get_db_connection()
-    conn.execute('DELETE FROM tasks WHERE id = ? AND user_id = ?',(id, CURRENT_USER))
+    conn.execute('DELETE FROM tasks WHERE id = ? AND user_id = ?',(id, session['user']))
     conn.commit()
     conn.close()
     return redirect('/')
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect('/login')
 
 @app.route('/upload',methods=['POST'])
 def upload():

@@ -1,147 +1,148 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Checklist App</title>
+    <title>Revision Checklist</title>
+
     <style>
-h3 {
-    padding: 8px;
-    border-radius: 6px;
-}
+        body {
+            font-family: Arial;
+            background: #f5f7fa;
+            margin: 20px;
+        }
 
-.day1 { background:#e3f2fd; }
-.day2 { background:#fce4ec; }
-.day3 { background:#e8f5e9; }
-.day4 { background:#fff3e0; }
-.day5 { background:#ede7f6; }
-.day6 { background:#f3e5f5; }
-.day7 { background:#e0f7fa; }
-.day8 { background:#f1f8e9; }
-.day9 { background:#fff8e1; }
-.day10 { background:#fbe9e7; }
-body {
-    font-family: Arial;
-    background: #f0f2f5;
-    padding: 20px;
-}
+        h1 {
+            color: #333;
+        }
 
-h1 {
-    text-align: center;
-}
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-form {
-    margin-bottom: 15px;
-}
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
 
-input, select {
-    padding: 8px;
-    margin: 5px;
-}
+        input, select {
+            padding: 6px;
+            margin: 5px;
+        }
 
-button {
-    padding: 8px 12px;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-}
+        .completed {
+            text-decoration: line-through;
+            color: gray;
+        }
 
-li {
-    background: white;
-    margin: 10px 0;
-    padding: 10px;
-    border-radius: 8px;
-}
-</style>
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .progress-container {
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar {
+            background: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 5px;
+        }
+    </style>
 </head>
+
 <body>
-<h1>My Revision Checklist</h1>
-<h2>🔥 Streak: {{ streak }} days</h2>
-<form action="/add" method="POST">
-    
-    <input type="text" name="task" placeholder="Enter topic" required>
 
-    <select name="day">
-        <option value="Day 1">Day 1</option>
-        <option value="Day 2">Day 2</option>
-        <option value="Day 3">Day 3</option>
-        <option value="Day 4">Day 4</option>
-        <option value="Day 5">Day 5</option>
-        <option value="Day 6">Day 6</option>
-        <option value="Day 7">Day 7</option>
-        <option value="Day 8">Day 8</option>
-        <option value="Day 9">Day 9</option>
-        <option value="Day 10">Day 10</option>
-    </select>
+<div class="top-bar">
+    <h1>📘 My Revision Checklist</h1>
+    <div>
+        <b>Welcome {{ session['user'] }}</b>
+        <a href="/logout" style="margin-left:10px; color:red;">Logout</a>
+    </div>
+</div>
 
-    <button type="submit">Add</button>
+<div class="card">
+    <h3>🔥 Streak: {{ streak }} days</h3>
 
-</form>
-<h3>
-    Completed:{{tasks|selectattr('done')|list|length}}/{{tasks|length}}
-</h3>
-{% for day in ['Day 1','Day 2','Day 3','Day 4','Day 5','Day 6','Day 7','Day 8','Day 9','Day 10'] %}
+    <!-- Progress Bar -->
+    {% set total = tasks|length %}
+    {% set done = tasks|selectattr('done')|list|length %}
 
-<h3 class="
-{% if day == 'Day 1' %} day1
-{% elif day == 'Day 2' %} day2
-{% elif day == 'Day 3' %} day3
-{% elif day == 'Day 4' %} day4
-{% elif day == 'Day 5' %} day5
-{% elif day == 'Day 6' %} day6
-{% elif day == 'Day 7' %} day7
-{% elif day == 'Day 8' %} day8
-{% elif day == 'Day 9' %} day9
-{% elif day == 'Day 10' %} day10
-{% endif %}
-">
-    📅 {{ day }}
-</h3>
-<ul>
+    <div class="progress-container">
+    <div class="progress-bar"
+         style="width: {{ (done/total*100) if total > 0 else 0 }}%">
+        {{ (done/total*100)|round(1) if total > 0 else 0 }}%
+    </div>
+</div>
+</div>
+
+<!-- Add Task -->
+<div class="card">
+    <form action="/add" method="POST">
+        <input type="text" name="task" placeholder="Add topic (e.g. Signals Unit 1)" required>
+
+        <select name="day">
+            <option value="Day 1">Day 1</option>
+            <option value="Day 2">Day 2</option>
+            <option value="Day 3">Day 3</option>
+            <option value="Day 4">Day 4</option>
+            <option value="Day 5">Day 5</option>
+            <option value="Day 6">Day 6</option>
+            <option value="Day 7">Day 7</option>
+            <option value="Day 8">Day 8</option>
+            <option value="Day 9">Day 9</option>
+            <option value="Day 10">Day 10</option>
+        </select>
+
+        <button type="submit">Add</button>
+    </form>
+</div>
+
+<!-- Task List -->
+<div class="card">
+    <h3>📌 Your Tasks</h3>
+
     {% for task in tasks %}
-        {% if task.day == day %}
-        <li style="margin:10px; font-size:18px;">
+        <p>
+            <span class="{{ 'completed' if task['done'] == 1 else '' }}">
+                {{ task['task'] }} ({{ task['day'] }})
+            </span>
 
-            <form action="/toggle/{{ task.id }}" method="POST" style="display:inline;">
-                <input type="checkbox" onchange="this.form.submit()" 
-                {% if task.done %} checked {% endif %}>
-            </form>
-
-            {% if task.done %}
-                <s>{{ task.task }}</s>
-            {% else %}
-                {{ task.task }}
-            {% endif %}
-
-            <a href="/delete/{{ task.id }}">❌</a>
-
-        </li>
-        {% endif %}
+            <a href="/toggle/{{ task['id'] }}">✔</a>
+            <a href="/delete/{{ task['id'] }}" style="color:red;">❌</a>
+        </p>
     {% endfor %}
-</ul>
+</div>
 
-{% endfor %}
-<hr>
-<!-- <h2>Upload Pdf Notes</h2>
-<form action="/upload" method="POST" enctype="multipart/form-data">
-    <input type="file" name="file">
-    <button type="submit">Upload</button> -->
-<h3>📂 Upload PDFs</h3>
-<h3>Upload PDF</h3>
+<!-- Upload PDF -->
+<div class="card">
+    <h3>📂 Upload Notes</h3>
 
-<form action="/upload" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" required>
-    <button type="submit">Upload</button>
-</form>
-<h3>📄 Uploaded PDFs</h3>
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
 
-<ul>
+    <br>
+
     {% for file in files %}
-        <li>
-            📎 <a href="{{ url_for('static', filename='uploads/' + file) }}" target="_blank">
-                {{ file }}
-            </a>
-        </li>
+        <a href="{{ url_for('static', filename='uploads/' + file) }}" target="_blank">
+            📄 {{ file }}
+        </a><br>
     {% endfor %}
-</ul>
+</div>
+
 </body>
 </html>
