@@ -2,16 +2,19 @@ from flask import Flask,render_template,request,redirect
 import sqlite3
 import os
 from datetime import date
+CURRENT_USER = "krishi"
 streak=0
 last_completed_date=None
 
 #----create table---------
 conn=sqlite3.connect('tasks.db')
 conn.execute('''
-CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY AUTOINCREMENT,
-task TEXT,
-done INTEGER,
-day TEXT
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task TEXT,
+    done INTEGER,
+    day TEXT,
+    user_id TEXT
 )
 ''')
 conn.close
@@ -44,7 +47,7 @@ def index():
     files = os.listdir(upload_folder)
 
     conn = get_db_connection()
-    tasks = conn.execute('SELECT * FROM tasks ORDER BY day').fetchall()
+    tasks = conn.execute('SELECT * FROM tasks WHERE user_id = ? ORDER BY day',(CURRENT_USER,)).fetchall()
     conn.close()
 
     streak = sum(1 for task in tasks if task['done'] == 1)
@@ -64,7 +67,7 @@ def add():
     task=request.form.get('task')
     day=request.form.get('day')
     conn=get_db_connection()
-    conn.execute('INSERT INTO tasks(task,done,day)VALUES(?,?,?)',(task,0,day))
+    conn.execute('INSERT INTO tasks (task, done, day, user_id) VALUES (?, ?, ?, ?)',(task, 0, day, CURRENT_USER))
     conn.commit()
     conn.close()
     #tasks.append({'task':task,'done':False})
@@ -79,7 +82,7 @@ def toggle(id):
     task = conn.execute('SELECT done FROM tasks WHERE id = ?', (id,)).fetchone()
     new_status = 0 if task['done'] else 1
 
-    conn.execute('UPDATE tasks SET done = ? WHERE id=?', (new_status, id))
+    conn.execute('UPDATE tasks SET done = 1 WHERE id = ? AND user_id = ?',(id, CURRENT_USER))
     conn.commit()
     conn.close()
 
@@ -100,7 +103,7 @@ def toggle(id):
 @app.route('/delete/<int:id>')
 def delete(id):
     conn=get_db_connection()
-    conn.execute('DELETE FROM tasks WHERE id=?',(id,))
+    conn.execute('DELETE FROM tasks WHERE id = ? AND user_id = ?',(id, CURRENT_USER))
     conn.commit()
     conn.close()
     return redirect('/')
